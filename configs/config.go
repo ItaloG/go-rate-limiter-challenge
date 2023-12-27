@@ -12,6 +12,7 @@ type conf struct {
 	BlockIpTime    string `mapstructure:"BLOCK_IP_TIME"`
 	BlockToken     string `mapstructure:"BLOCK_TOKEN"`
 	BlockTokenTime string `mapstructure:"BLOCK_TOKEN_TIME"`
+	RedisHost      string `mapstructure:"REDIS_HOST"`
 }
 
 var (
@@ -20,6 +21,7 @@ var (
 	ErrBlockTokenRequired     = errors.New("você deve passar um TOKEN para realizar o bloqueio")
 	ErrBlockTokenTimeRequired = errors.New("você deve passar um tempo limite de bloqueio para o TOKEN")
 	ErrRateLimitEnvsRequired  = errors.New("você deve passar as variaveis de RATE LIMIT")
+	ErrRedisHostRequired      = errors.New("você deve passar o host do REDIS")
 )
 
 func LoadConfig(path string) (*conf, error) {
@@ -28,8 +30,9 @@ func LoadConfig(path string) (*conf, error) {
 	blockIpTime := os.Getenv("BLOCK_IP_TIME")
 	blockToken := os.Getenv("BLOCK_TOKEN")
 	blockTokenTime := os.Getenv("BLOCK_TOKEN_TIME")
+	redisHost := os.Getenv("REDIS_HOST")
 
-	envConfig, err := validateEnvs(blockIp, blockIpTime, blockToken, blockTokenTime)
+	envConfig, err := validateEnvs(blockIp, blockIpTime, blockToken, blockTokenTime, redisHost)
 	if envConfig != nil {
 		return envConfig, err
 	}
@@ -49,22 +52,28 @@ func LoadConfig(path string) (*conf, error) {
 		panic(err)
 	}
 
-	viperConfig, err = validateEnvs(viperConfig.BlockIp, viperConfig.BlockIpTime, viperConfig.BlockToken, viperConfig.BlockTokenTime)
+	viperConfig, err = validateEnvs(viperConfig.BlockIp, viperConfig.BlockIpTime, viperConfig.BlockToken, viperConfig.BlockTokenTime, viperConfig.RedisHost)
+
+	if err != nil {
+		return nil, err
+	}
+
+	os.Setenv("REDIS_HOST", viperConfig.RedisHost)
 
 	return viperConfig, err
 }
 
-func validateEnvs(blockIp string, blockIpTime string, blockToken string, blockTokenTime string) (*conf, error) {
+func validateEnvs(blockIp string, blockIpTime string, blockToken string, blockTokenTime string, redisHost string) (*conf, error) {
+	if redisHost == "" {
+		return nil, ErrRedisHostRequired
+	}
+
 	if blockIp != "" && blockIpTime == "" {
 		return nil, ErrBlockIpTimeRequired
 	}
 
 	if blockIp == "" && blockIpTime != "" {
 		return nil, ErrBlockIpRequired
-	}
-
-	if blockIp != "" && blockIpTime != "" {
-		return &conf{BlockIp: blockIp, BlockIpTime: blockIpTime}, nil
 	}
 
 	if blockToken != "" && blockTokenTime == "" {
@@ -75,9 +84,17 @@ func validateEnvs(blockIp string, blockIpTime string, blockToken string, blockTo
 		return nil, ErrBlockTokenRequired
 	}
 
-	if blockToken != "" && blockTokenTime != "" {
-		return &conf{BlockToken: blockToken, BlockTokenTime: blockTokenTime}, nil
+	if blockIp != "" && blockIpTime != "" && blockToken == "" && blockTokenTime == "" {
+		return &conf{BlockIp: blockIp, BlockIpTime: blockIpTime, RedisHost: redisHost}, nil
 	}
 
-	return nil, ErrRateLimitEnvsRequired
+	if blockToken != "" && blockTokenTime != "" && blockIp == "" && blockIpTime == "" {
+		return &conf{BlockToken: blockToken, BlockTokenTime: blockTokenTime, RedisHost: redisHost}, nil
+	}
+
+	if blockToken == "" && blockTokenTime == "" && blockIp == "" && blockIpTime == "" {
+		return nil, ErrRateLimitEnvsRequired
+	}
+
+	return &conf{BlockToken: blockToken, BlockTokenTime: blockTokenTime, BlockIp: blockIp, BlockIpTime: blockIpTime, RedisHost: redisHost}, nil
 }
