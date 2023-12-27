@@ -7,20 +7,13 @@ import (
 )
 
 type RateLimitInterface interface {
-	AddKey(ctx context.Context, key string, duration time.Duration) error
-	GetKey(ctx context.Context, key string) string
-	VerifyKey(ctx context.Context, key string, limit int) (bool, error)
+	VerifyLimit(ctx context.Context, key string, limit int64, duration time.Duration) (bool, error)
 }
 
-func Handle(r RateLimitInterface, key string, duration time.Duration, limit int) error {
+func Handle(r RateLimitInterface, key string, duration time.Duration, limit int64) error {
 	ctx := context.Background()
-	defer ctx.Done()
-	result := r.GetKey(ctx, key)
-	if result == "" {
-		r.AddKey(ctx, key, duration)
-	}
 
-	isLimited, err := r.VerifyKey(ctx, key, limit)
+	isLimited, err := r.VerifyLimit(ctx, key, limit, duration)
 
 	if err != nil {
 		return err

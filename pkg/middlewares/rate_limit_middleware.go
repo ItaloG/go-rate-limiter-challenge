@@ -3,6 +3,7 @@ package middlewares
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/ItaloG/go-rate-limiter-challenge/pkg/middlewares/handlers"
@@ -11,10 +12,12 @@ import (
 
 func RateLimitMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		redisClient := redis.NewRedisClient("localhost")
+		redisAddr := os.Getenv("REDIS_HOST")
+		redisClient := redis.NewRedisClient(redisAddr)
 		redisRateLimit := &redis.RedisRateLimit{Client: redisClient.Client}
 
-		err := handlers.Handle(redisRateLimit, "key", time.Second*8, 10)
+		err := handlers.Handle(redisRateLimit, "teste", time.Minute*3, 2)
+		fmt.Println("error", err)
 		if err != nil {
 			w.Write([]byte(err.Error()))
 		}
