@@ -10,6 +10,8 @@ import (
 	"github.com/ItaloG/go-rate-limiter-challenge/pkg/redis"
 )
 
+// TODO: CRIAR FUNÇÃO PARA PEGAR IP DA REUEST
+// TODO: ENVIAR VALORES PARA O HANDLER
 func RateLimitMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(r.RemoteAddr)
