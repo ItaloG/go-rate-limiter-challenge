@@ -8,31 +8,37 @@ import (
 )
 
 type conf struct {
-	BlockIp        string `mapstructure:"BLOCK_IP"`
-	BlockIpTime    string `mapstructure:"BLOCK_IP_TIME"`
-	BlockToken     string `mapstructure:"BLOCK_TOKEN"`
-	BlockTokenTime string `mapstructure:"BLOCK_TOKEN_TIME"`
-	RedisHost      string `mapstructure:"REDIS_HOST"`
+	BlockIp         string `mapstructure:"BLOCK_IP"`
+	BlockIpLimit    string `mapstructure:"BLOCK_IP_LIMIT"`
+	BlockIpTime     string `mapstructure:"BLOCK_IP_TIME"`
+	BlockToken      string `mapstructure:"BLOCK_TOKEN"`
+	BlockTokenLimit string `mapstructure:"BLOCK_TOKEN_LIMIT"`
+	BlockTokenTime  string `mapstructure:"BLOCK_TOKEN_TIME"`
+	RedisHost       string `mapstructure:"REDIS_HOST"`
 }
 
 var (
-	ErrBlockIpRequired        = errors.New("você deve passar um IP para realizar o bloqueio")
-	ErrBlockIpTimeRequired    = errors.New("você deve passar um tempo limite de bloqueio para o IP")
-	ErrBlockTokenRequired     = errors.New("você deve passar um TOKEN para realizar o bloqueio")
-	ErrBlockTokenTimeRequired = errors.New("você deve passar um tempo limite de bloqueio para o TOKEN")
-	ErrRateLimitEnvsRequired  = errors.New("você deve passar as variaveis de RATE LIMIT")
-	ErrRedisHostRequired      = errors.New("você deve passar o host do REDIS")
+	ErrBlockIpRequired         = errors.New("você deve passar um IP para realizar o bloqueio")
+	ErrBlockIpLimitRequired    = errors.New("você deve passar um LIMITE DE TENTATIVAS para realizar o bloqueio por IP")
+	ErrBlockIpTimeRequired     = errors.New("você deve passar um tempo limite de bloqueio para o IP")
+	ErrBlockTokenRequired      = errors.New("você deve passar um TOKEN para realizar o bloqueio")
+	ErrBlockTokenLimitRequired = errors.New("você deve passar um LIMITE DE TENTATIVAS para realizar o bloqueio por TOKEN")
+	ErrBlockTokenTimeRequired  = errors.New("você deve passar um tempo limite de bloqueio para o TOKEN")
+	ErrRateLimitEnvsRequired   = errors.New("você deve passar as variaveis de RATE LIMIT")
+	ErrRedisHostRequired       = errors.New("você deve passar o host do REDIS")
 )
 
 func LoadConfig(path string) (*conf, error) {
 
 	blockIp := os.Getenv("BLOCK_IP")
+	blockIpLimit := os.Getenv("BLOCK_IP_LIMIT")
 	blockIpTime := os.Getenv("BLOCK_IP_TIME")
 	blockToken := os.Getenv("BLOCK_TOKEN")
+	blockTokenLimit := os.Getenv("BLOCK_TOKEN_LIMIT")
 	blockTokenTime := os.Getenv("BLOCK_TOKEN_TIME")
 	redisHost := os.Getenv("REDIS_HOST")
 
-	envConfig, err := validateEnvs(blockIp, blockIpTime, blockToken, blockTokenTime, redisHost)
+	envConfig, err := ValidateEnvs(blockIp, blockIpLimit, blockIpTime, blockToken, blockTokenLimit, blockTokenTime, redisHost)
 	if envConfig != nil {
 		return envConfig, err
 	}
@@ -52,49 +58,71 @@ func LoadConfig(path string) (*conf, error) {
 		panic(err)
 	}
 
-	viperConfig, err = validateEnvs(viperConfig.BlockIp, viperConfig.BlockIpTime, viperConfig.BlockToken, viperConfig.BlockTokenTime, viperConfig.RedisHost)
+	viperConfig, err = ValidateEnvs(viperConfig.BlockIp, viperConfig.BlockIpLimit, viperConfig.BlockIpTime, viperConfig.BlockToken, viperConfig.BlockTokenLimit, viperConfig.BlockTokenTime, viperConfig.RedisHost)
 
 	if err != nil {
 		return nil, err
 	}
 
 	os.Setenv("REDIS_HOST", viperConfig.RedisHost)
+	os.Setenv("BLOCK_IP", viperConfig.BlockIp)
+	os.Setenv("BLOCK_IP_LIMIT", viperConfig.BlockIpLimit)
+	os.Setenv("BLOCK_IP_TIME", viperConfig.BlockIpTime)
+	os.Setenv("BLOCK_TOKEN", viperConfig.BlockToken)
+	os.Setenv("BLOCK_TOKEN_LIMIT", viperConfig.BlockTokenLimit)
+	os.Setenv("BLOCK_TOKEN_TIME", viperConfig.BlockTokenTime)
 
 	return viperConfig, err
 }
 
-func validateEnvs(blockIp string, blockIpTime string, blockToken string, blockTokenTime string, redisHost string) (*conf, error) {
+func ValidateEnvs(blockIp string, blockIpLimit string, blockIpTime string, blockToken string, blockTokenLimit string, blockTokenTime string, redisHost string) (*conf, error) {
 	if redisHost == "" {
 		return nil, ErrRedisHostRequired
-	}
+	} // ok
 
 	if blockIp != "" && blockIpTime == "" {
 		return nil, ErrBlockIpTimeRequired
-	}
+	} // ok
+
+	if blockIp != "" && blockIpLimit == "" {
+		return nil, ErrBlockIpLimitRequired
+	} // ok
+
+	if blockIp == "" && blockIpLimit != "" {
+		return nil, ErrBlockIpRequired
+	} // ok
 
 	if blockIp == "" && blockIpTime != "" {
 		return nil, ErrBlockIpRequired
-	}
+	} // ok
 
 	if blockToken != "" && blockTokenTime == "" {
 		return nil, ErrBlockTokenTimeRequired
-	}
+	} // ok
+
+	if blockToken == "" && blockTokenLimit != "" {
+		return nil, ErrBlockTokenRequired
+	} // ok
+
+	if blockToken != "" && blockTokenLimit == "" {
+		return nil, ErrBlockTokenLimitRequired
+	} // ok
 
 	if blockToken == "" && blockTokenTime != "" {
 		return nil, ErrBlockTokenRequired
-	}
+	} // ok
 
 	if blockIp != "" && blockIpTime != "" && blockToken == "" && blockTokenTime == "" {
-		return &conf{BlockIp: blockIp, BlockIpTime: blockIpTime, RedisHost: redisHost}, nil
+		return &conf{BlockIp: blockIp, BlockIpLimit: blockIpLimit, BlockIpTime: blockIpTime, RedisHost: redisHost}, nil
 	}
 
 	if blockToken != "" && blockTokenTime != "" && blockIp == "" && blockIpTime == "" {
-		return &conf{BlockToken: blockToken, BlockTokenTime: blockTokenTime, RedisHost: redisHost}, nil
+		return &conf{BlockToken: blockToken, BlockTokenLimit: blockTokenLimit, BlockTokenTime: blockTokenTime, RedisHost: redisHost}, nil
 	}
 
 	if blockToken == "" && blockTokenTime == "" && blockIp == "" && blockIpTime == "" {
 		return nil, ErrRateLimitEnvsRequired
 	}
 
-	return &conf{BlockToken: blockToken, BlockTokenTime: blockTokenTime, BlockIp: blockIp, BlockIpTime: blockIpTime, RedisHost: redisHost}, nil
+	return &conf{BlockToken: blockToken, BlockTokenLimit: blockTokenLimit, BlockTokenTime: blockTokenTime, BlockIp: blockIp, BlockIpLimit: blockIpLimit, BlockIpTime: blockIpTime, RedisHost: redisHost}, nil
 }

@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	redisV9 "github.com/redis/go-redis/v9"
@@ -15,7 +16,7 @@ func (r *RedisRateLimit) VerifyLimit(ctx context.Context, key string, limit int6
 	isLimited := false
 
 	count, err := r.Client.Incr(ctx, key).Result()
-
+	fmt.Println(count)
 	if err != nil {
 		isLimited = true
 		return isLimited, err
