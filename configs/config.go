@@ -78,46 +78,30 @@ func LoadConfig(path string) (*conf, error) {
 func ValidateEnvs(blockIp string, blockIpLimit string, blockIpTime string, blockToken string, blockTokenLimit string, blockTokenTime string, redisHost string) (*conf, error) {
 	if redisHost == "" {
 		return nil, ErrRedisHostRequired
-	} // ok
+	}
 
 	if blockIp != "" && blockIpTime == "" {
 		return nil, ErrBlockIpTimeRequired
-	} // ok
+	}
 
 	if blockIp != "" && blockIpLimit == "" {
 		return nil, ErrBlockIpLimitRequired
-	} // ok
+	}
 
 	if blockIp == "" && blockIpLimit != "" {
 		return nil, ErrBlockIpRequired
-	} // ok
-
-	if blockIp == "" && blockIpTime != "" {
-		return nil, ErrBlockIpRequired
-	} // ok
+	}
 
 	if blockToken != "" && blockTokenTime == "" {
 		return nil, ErrBlockTokenTimeRequired
-	} // ok
+	}
 
 	if blockToken == "" && blockTokenLimit != "" {
 		return nil, ErrBlockTokenRequired
-	} // ok
+	}
 
 	if blockToken != "" && blockTokenLimit == "" {
 		return nil, ErrBlockTokenLimitRequired
-	} // ok
-
-	if blockToken == "" && blockTokenTime != "" {
-		return nil, ErrBlockTokenRequired
-	} // ok
-
-	if blockIp != "" && blockIpTime != "" && blockToken == "" && blockTokenTime == "" {
-		return &conf{BlockIp: blockIp, BlockIpLimit: blockIpLimit, BlockIpTime: blockIpTime, RedisHost: redisHost}, nil
-	}
-
-	if blockToken != "" && blockTokenTime != "" && blockIp == "" && blockIpTime == "" {
-		return &conf{BlockToken: blockToken, BlockTokenLimit: blockTokenLimit, BlockTokenTime: blockTokenTime, RedisHost: redisHost}, nil
 	}
 
 	if blockToken == "" && blockTokenTime == "" && blockIp == "" && blockIpTime == "" {
