@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/ItaloG/go-rate-limiter-challenge/configs"
@@ -24,7 +23,6 @@ func main() {
 	r.Use(middlewares.RateLimitMiddleware)
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println(r.Header.Get("API_KEY"))
 		w.WriteHeader(201)
 		w.Write([]byte("<b>HELLO</b>"))
 	})

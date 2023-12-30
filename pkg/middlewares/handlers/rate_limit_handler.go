@@ -15,7 +15,7 @@ var ErrFoo = errors.New("you have reached the maximum number of requests or acti
 func Handle(r RateLimitInterface, blockIp string, blockIpLimit int64, blockIpTime int, clientIp string, blockToken string, blockTokenLimit int64, blockTokenTime int, clientToken string) error {
 	ctx := context.Background()
 
-	if blockToken != "" {
+	if blockToken != "" && clientToken != "" {
 		if clientToken != blockToken {
 			return nil
 		}
