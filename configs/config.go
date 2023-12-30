@@ -30,17 +30,24 @@ var (
 
 func LoadConfig(path string) (*conf, error) {
 
-	blockIp := os.Getenv("BLOCK_IP")
-	blockIpLimit := os.Getenv("BLOCK_IP_LIMIT")
-	blockIpTime := os.Getenv("BLOCK_IP_TIME")
-	blockToken := os.Getenv("BLOCK_TOKEN")
-	blockTokenLimit := os.Getenv("BLOCK_TOKEN_LIMIT")
-	blockTokenTime := os.Getenv("BLOCK_TOKEN_TIME")
-	redisHost := os.Getenv("REDIS_HOST")
+	_, err := os.ReadFile(".env")
+	if err != nil {
+		blockIp := os.Getenv("BLOCK_IP")
+		blockIpLimit := os.Getenv("BLOCK_IP_LIMIT")
+		blockIpTime := os.Getenv("BLOCK_IP_TIME")
+		blockToken := os.Getenv("BLOCK_TOKEN")
+		blockTokenLimit := os.Getenv("BLOCK_TOKEN_LIMIT")
+		blockTokenTime := os.Getenv("BLOCK_TOKEN_TIME")
+		redisHost := os.Getenv("REDIS_HOST")
 
-	envConfig, err := ValidateEnvs(blockIp, blockIpLimit, blockIpTime, blockToken, blockTokenLimit, blockTokenTime, redisHost)
-	if envConfig != nil {
-		return envConfig, err
+		envConfig, err := ValidateEnvs(blockIp, blockIpLimit, blockIpTime, blockToken, blockTokenLimit, blockTokenTime, redisHost)
+
+		if err != nil {
+			return nil, err
+		}
+		if envConfig != nil {
+			return envConfig, nil
+		}
 	}
 
 	var viperConfig *conf
